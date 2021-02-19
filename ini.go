@@ -20,8 +20,8 @@ const (
 
 // Key kv struct
 type Key struct {
-	K string
-	V string
+	K string `json:"k"`
+	V string `json:"v"`
 }
 
 // KeySlice
@@ -46,8 +46,8 @@ func (m KeySlice) Len() int {
 type SectionMap map[string]KeySlice
 
 type INI struct {
-	directory    string   //配置文件目录
-	files        []string // 配置文件
+	directory    string //配置文件目录
+	filename     string //配置文件
 	sections     SectionMap
 	lineSep      string // 换行符号
 	kvSep        string // k = v 的分隔符号
@@ -70,49 +70,27 @@ func New(path ...string) *INI {
 		dir = path[0]
 	}
 	ini := &INI{
-		sections:  make(SectionMap),
-		lineSep:   defaultLineSeparator,
-		kvSep:     defaultKeyValueSeparator,
-		directory: dir,
-		files:     make([]string, 10),
+		sections:     make(SectionMap),
+		lineSep:      defaultLineSeparator,
+		kvSep:        defaultKeyValueSeparator,
+		directory:    dir,
+		parseSection: true,
+		skipCommits:  true,
+		trimQuotes:   true,
+		isInclude:    true,
 	}
 	return ini
 }
 
 // Load load file from directory to ini data
 func (ini *INI) Load(filename string) error {
-	content, err := ioutil.ReadFile(path.Join(ini.directory, filename))
-	if err != nil {
-		return err
-	}
-	ini.parseSection = true
-	ini.skipCommits = true
-	ini.trimQuotes = true
-	ini.isInclude = true
-	ini.files = append(ini.files, filename)
-	err = ini.parseINI(content, ini.lineSep, ini.kvSep)
-	if err != nil {
-		return err
-	}
+	ini.filename = filename
+	return ini.loadFile()
+}
 
-	//处理包含文件
-	if ini.isInclude {
-		incFilename := ini.SectionGet("file", "include")
-		if incFilename != "" {
-			incContent, err := ioutil.ReadFile(path.Join(ini.directory, incFilename))
-			if err != nil {
-				return err
-			}
-			ini.files = append(ini.files, incFilename)
-			newContent := bytesCombine(content, incContent)
-			err = ini.parseINI(newContent, ini.lineSep, ini.kvSep)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+// ReLoad reload file
+func (ini *INI) ReLoad() error {
+	return ini.loadFile()
 }
 
 // LoadByte load byte to ini data
@@ -239,6 +217,7 @@ func (ini *INI) Write(w io.Writer) error {
 		ini.write(kv, buf)
 	}
 
+	// write name section
 	for k, _ := range ini.sections {
 		if k == defaultSection {
 			continue
@@ -252,7 +231,67 @@ func (ini *INI) Write(w io.Writer) error {
 	return buf.Flush()
 }
 
+//==================get/set================
+
+// SetFileName
+func (ini *INI) SetFileName(filename string) {
+	ini.filename = filename
+}
+
+// GetFileName
+func (ini *INI) GetFileName() string {
+	return ini.filename
+}
+
+// SetDirectory
+func (ini *INI) SetDirectory(dir string) {
+	ini.directory = dir
+}
+
+// GetDirectory
+func (ini *INI) GetDirectory() string {
+	return ini.directory
+}
+
 //==================private================
+
+// loadFile 递归调用 n 次，返回组合后的[]byte
+func (ini *INI) loadFile() error {
+	filename := ini.filename
+	data, err := ini.readFile(filename)
+	if err != nil {
+		return err
+	}
+
+	err = ini.LoadByte(data, ini.lineSep, ini.kvSep)
+	if err != nil {
+		return err
+	}
+
+	if ini.isInclude {
+		filename = ini.SectionGet("file", "include")
+		if filename != "" {
+			newData, err := ini.readFile(filename)
+			if err != nil {
+				return err
+			}
+			err = ini.LoadByte(bytesCombine(data, newData), ini.lineSep, ini.kvSep)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// readFile
+func (ini *INI) readFile(filename string) (data []byte, err error) {
+	if filename == "" {
+		return nil, errors.New("need filename")
+	}
+	return ioutil.ReadFile(path.Join(ini.directory, filename))
+}
 
 // bytesCombine
 func bytesCombine(pBytes ...[]byte) []byte {
@@ -276,6 +315,9 @@ func (ini *INI) write(kv []Key, buf *bufio.Writer) {
 // parseINI parse ini data
 //	return an error
 func (ini *INI) parseINI(data []byte, lineSep, kvSep string) error {
+	if len(data) == 0 {
+		return errors.New("empty file")
+	}
 	ini.lineSep = lineSep
 	ini.kvSep = kvSep
 
