@@ -255,7 +255,7 @@ func (ini *INI) GetDirectory() string {
 
 //==================private================
 
-// loadFile 递归调用 n 次，返回组合后的[]byte
+// loadFile 读取文件
 func (ini *INI) loadFile() error {
 	filename := ini.filename
 	data, err := ini.readFile(filename)
@@ -349,7 +349,7 @@ func (ini *INI) parseINI(data []byte, lineSep, kvSep string) error {
 		pos := bytes.Index(line, []byte(kvSep))
 		if pos < 0 {
 			// ERROR happened when passing
-			err := errors.New("Came accross an error : " + string(line) + " is NOT a valid key/value pair")
+			err := errors.New("came across an error : " + string(line) + " is NOT a valid key/value pair")
 			return err
 		}
 
@@ -359,12 +359,28 @@ func (ini *INI) parseINI(data []byte, lineSep, kvSep string) error {
 			v = bytes.Trim(v, "'\"")
 		}
 
-		keySlice = append(keySlice, Key{
-			K: string(k),
-			V: string(v),
-		})
+		// 去重复:某个section下有重复的key时，只加载顺序的第一个
+		if !existKeyInSlice(keySlice, string(k)) {
+			keySlice = append(keySlice, Key{
+				K: string(k),
+				V: string(v),
+			})
+		}
 
 		ini.sections[section] = keySlice
 	}
 	return nil
+}
+
+// existKeyInSlice
+func existKeyInSlice(keySlice KeySlice, k string) bool {
+	if k == "" {
+		return false
+	}
+	for _, item := range keySlice {
+		if item.K == k {
+			return true
+		}
+	}
+	return false
 }
