@@ -6,9 +6,11 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"os"
 	"path"
 	"sort"
 	"strconv"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -46,14 +48,15 @@ func (m KeySlice) Len() int {
 type SectionMap map[string]KeySlice
 
 type INI struct {
-	directory    string //配置文件目录
-	filename     string //配置文件
-	sections     SectionMap
-	lineSep      string // 换行符号
-	kvSep        string // k = v 的分隔符号
-	parseSection bool   // 是否解析section
-	skipCommits  bool   // 是否跳过注释代码 # and ;
-	trimQuotes   bool   // 是否修剪引号
+	directory    string        //配置文件目录
+	filename     string        //配置文件
+	rwLock       *sync.RWMutex //读写锁
+	sections     SectionMap    //数据存储
+	lineSep      string        // 换行符号
+	kvSep        string        // k = v 的分隔符号
+	parseSection bool          // 是否解析section
+	skipCommits  bool          // 是否跳过注释代码 # and ;
+	trimQuotes   bool          // 是否修剪引号
 	/*
 		[file]
 		include = other.conf
@@ -78,6 +81,7 @@ func New(path ...string) *INI {
 		skipCommits:  true,
 		trimQuotes:   true,
 		isInclude:    true,
+		rwLock:       &sync.RWMutex{},
 	}
 	return ini
 }
@@ -208,6 +212,23 @@ func (ini *INI) GetSections() []string {
 	return sections
 }
 
+// WriteFile write content to a file
+func (ini *INI) WriteFile(filename string) error {
+	ini.rwLock.Lock()
+	defer ini.rwLock.Unlock()
+	file, err := os.Create(path.Join(ini.directory, filename))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = ini.Write(file)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Write write to io.Writer
 func (ini *INI) Write(w io.Writer) error {
 	buf := bufio.NewWriter(w)
@@ -290,6 +311,8 @@ func (ini *INI) readFile(filename string) (data []byte, err error) {
 	if filename == "" {
 		return nil, errors.New("need filename")
 	}
+	ini.rwLock.RLock()
+	defer ini.rwLock.RUnlock()
 	return ioutil.ReadFile(path.Join(ini.directory, filename))
 }
 

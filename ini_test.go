@@ -3,11 +3,12 @@ package gini
 import (
 	"fmt"
 	"log"
-	"os"
 	"testing"
 )
 
 func Test1(t *testing.T) {
+
+	// ini:=New("./conf")  指定目录
 	ini := New()
 	err := ini.Load("app.conf")
 	if err != nil {
@@ -21,7 +22,7 @@ func Test1(t *testing.T) {
 	vb := ini.GetBool("session_on")
 	fmt.Printf("bool : %#v \n", vb)
 
-	vi,_ := ini.GetInt("http_addr")
+	vi, _ := ini.GetInt("http_addr")
 	fmt.Printf("int : %#v \n", vi)
 
 	// 读取指定section的key
@@ -45,13 +46,7 @@ func Test1(t *testing.T) {
 	}
 
 	//写到一个新的文件
-	file, err := os.Create("./conf/app_temp.conf")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	err = ini.Write(file)
+	err = ini.WriteFile("app_temp.conf")
 	if err != nil {
 		log.Fatal(err)
 	}
