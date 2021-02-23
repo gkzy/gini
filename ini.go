@@ -212,11 +212,11 @@ func (ini *INI) GetSections() []string {
 	return sections
 }
 
-// WriteFile write content to a file
-func (ini *INI) WriteFile(filename string) error {
+// WriteOriginFile write content to origin file
+func (ini *INI) WriteOriginFile() error {
 	ini.rwLock.Lock()
 	defer ini.rwLock.Unlock()
-	file, err := os.Create(path.Join(ini.directory, filename))
+	file, err := os.Create(path.Join(ini.directory, ini.filename))
 	if err != nil {
 		return err
 	}
@@ -225,8 +225,24 @@ func (ini *INI) WriteFile(filename string) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
+}
+
+// WriteFile write an new file
+//	need filename and content
+func (ini *INI) WriteFile(filename, content string) (n int, err error) {
+	ini.rwLock.Lock()
+	defer ini.rwLock.Unlock()
+	file, err := os.Create(path.Join(ini.directory, filename))
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	n, err = file.WriteString(content)
+	if err != nil {
+		return
+	}
+	return
 }
 
 // Write write to io.Writer
