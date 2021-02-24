@@ -1,6 +1,7 @@
 package gini
 
 import (
+	"fmt"
 	"log"
 	"testing"
 )
@@ -55,8 +56,27 @@ func Test1(t *testing.T) {
 	//}
 
 	//写到一个新的文件
-	_, err = ini.WriteFile("app_ex.conf", content)
+	//_, err = ini.WriteFile("app_ex.conf", content)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
+	data, err := ini.readFile("app.conf")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
+	newData, err := ini.readFile("app_ex.conf")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	bytes := ini.bytesCombine(data, newData)
+	fmt.Println(bytes)
+
+	//combine := bytesCombine(data, newData)
+	//fmt.Println(combine)
+
+	err = ini.LoadByte(bytes, ini.lineSep, ini.kvSep)
+	fmt.Println(err)
+
 }

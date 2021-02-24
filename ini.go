@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -28,6 +29,8 @@ type Key struct {
 
 // KeySlice
 type KeySlice []Key
+
+type ConfArray []string
 
 // Less sort less imp
 func (m KeySlice) Less(i, j int) bool {
@@ -312,7 +315,7 @@ func (ini *INI) loadFile() error {
 			if err != nil {
 				return err
 			}
-			err = ini.LoadByte(bytesCombine(data, newData), ini.lineSep, ini.kvSep)
+			err = ini.LoadByte(ini.bytesCombine(data, newData), ini.lineSep, ini.kvSep)
 			if err != nil {
 				return err
 			}
@@ -333,7 +336,50 @@ func (ini *INI) readFile(filename string) (data []byte, err error) {
 }
 
 // bytesCombine
-func bytesCombine(pBytes ...[]byte) []byte {
+func (ini *INI)bytesCombine(pBytes ...[]byte) []byte {
+
+	var section string
+	var confArray ConfArray
+	sections := make(map[string]ConfArray)
+
+	for _, b := range pBytes {
+		section = ""
+		lines := bytes.Split(b, []byte("\n"))
+		for _, line := range lines {
+			line = bytes.TrimSpace(line)
+			size := len(line)
+			if size == 0 {
+				// Skip blank lines
+				continue
+			}
+			if ini.skipCommits && line[0] == ';' || line[0] == '#' {
+				// Skip comments
+				continue
+			}
+			if ini.parseSection && line[0] == '[' && line[size-1] == ']' {
+				// Parse INI-Section
+				section = string(line[1 : size-1])
+				confArray = make([]string, 0)
+				sections[section] = confArray
+				continue
+			}
+			sections[section] = append(sections[section], string(line))
+		}
+	}
+
+	var buffer bytes.Buffer
+	for key, value := range sections {
+		if key != "" {
+			buffer.Write([]byte(fmt.Sprintf("[%s]\n", key)))
+		}
+		for _, v := range value {
+			buffer.Write([]byte(fmt.Sprintf("%s\n", v)))
+		}
+	}
+	return buffer.Bytes()
+}
+
+func bytesCombine( pBytes ...[]byte) []byte {
 	var buffer bytes.Buffer
 	for _, b := range pBytes {
 		buffer.Write(b)
