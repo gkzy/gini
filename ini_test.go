@@ -20,7 +20,7 @@ func Test1(t *testing.T) {
 
 	// ini:=New("./conf")  指定目录
 	ini := New()
-	err := ini.Load("app.conf")
+	err := ini.Load("app.conf", false)
 	if err != nil {
 		log.Fatal(err)
 	}

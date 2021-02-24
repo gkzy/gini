@@ -90,14 +90,14 @@ func New(path ...string) *INI {
 }
 
 // Load load file from directory to ini data
-func (ini *INI) Load(filename string) error {
+func (ini *INI) Load(filename string, firstLoad bool) error {
 	ini.filename = filename
-	return ini.loadFile()
+	return ini.loadFile(firstLoad)
 }
 
 // ReLoad reload file
 func (ini *INI) ReLoad() error {
-	return ini.loadFile()
+	return ini.loadFile(false)
 }
 
 // LoadByte load byte to ini data
@@ -296,7 +296,8 @@ func (ini *INI) GetDirectory() string {
 //==================private================
 
 // loadFile 读取文件
-func (ini *INI) loadFile() error {
+// @param firstLoad 是否第一次加载
+func (ini *INI) loadFile(firstLoad bool) error {
 	filename := ini.filename
 	data, err := ini.readFile(filename)
 	if err != nil {
@@ -308,11 +309,12 @@ func (ini *INI) loadFile() error {
 		return err
 	}
 
-	if ini.isInclude {
+	// 第一次不加载ex.conf文件
+	if !firstLoad && ini.isInclude {
 		filename = ini.SectionGet("file", "include")
 		if filename != "" {
 			newData, err := ini.readFile(filename)
-			if err != nil {
+			if !firstLoad &&err != nil {
 				return err
 			}
 			err = ini.LoadByte(ini.bytesCombine(data, newData), ini.lineSep, ini.kvSep)
