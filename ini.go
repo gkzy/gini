@@ -370,10 +370,17 @@ func (ini *INI)bytesCombine(pBytes ...[]byte) []byte {
 	}
 
 	var buffer bytes.Buffer
+	//put no section conf to file top
+	noSectionConf := sections[""]
+	for _, v := range noSectionConf {
+		buffer.Write([]byte(fmt.Sprintf("%s\n", v)))
+	}
+
 	for key, value := range sections {
-		if key != "" {
-			buffer.Write([]byte(fmt.Sprintf("[%s]\n", key)))
+		if key == "" {
+			continue
 		}
+		buffer.Write([]byte(fmt.Sprintf("[%s]\n", key)))
 		for _, v := range value {
 			buffer.Write([]byte(fmt.Sprintf("%s\n", v)))
 		}
