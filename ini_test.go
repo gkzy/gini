@@ -1,18 +1,17 @@
 package gini
 
 import (
-	"fmt"
 	"log"
+	"os"
 	"testing"
 )
 
 var (
 	content = `
-	default = 1
-	abc = 2
-	
-	[data]
-	host = 192.168.0.1
+default = 1
+abc = 2
+[data]
+host = 192.168.0.1
 `
 )
 
@@ -20,7 +19,7 @@ func Test1(t *testing.T) {
 
 	// ini:=New("./conf")  指定目录
 	ini := New()
-	err := ini.Load("app.conf", false)
+	err := ini.Load("app.conf")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,28 +54,20 @@ func Test1(t *testing.T) {
 	//	fmt.Println(item.K, item.V)
 	//}
 
-	//写到一个新的文件
-	//_, err = ini.WriteFile("app_ex.conf", content)
+	//重写原来的文件
+	//err = ini.WriteOriginFile()
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
 
-	data, err := ini.readFile("app.conf")
+	file, err := os.Create("./conf/new.conf")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
-	newData, err := ini.readFile("app_ex.conf")
+	defer file.Close()
+	err = ini.Write(file)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
-
-	bytes := ini.bytesCombine(data, newData)
-	fmt.Println(bytes)
-
-	//combine := bytesCombine(data, newData)
-	//fmt.Println(combine)
-
-	err = ini.LoadByte(bytes, ini.lineSep, ini.kvSep)
-	fmt.Println(err)
 
 }
