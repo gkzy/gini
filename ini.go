@@ -1,6 +1,10 @@
 /*
 ini 配置文件的基本读写 lib
 
+https://github.com/gkzy/gini
+
+sam
+2021/7/9
 */
 
 package gini
@@ -310,7 +314,7 @@ func (ini *INI) SetSectionMap(sectionMap SectionMap) {
 
 //==================private================
 
-// loadFile 读取文件
+// loadFile load file to mem
 func (ini *INI) loadFile() error {
 	data, err := ini.readFile(ini.filename)
 	if err != nil {
@@ -325,7 +329,8 @@ func (ini *INI) loadFile() error {
 	return nil
 }
 
-// readFile
+// readFile read file from filename
+//	return []byte
 func (ini *INI) readFile(filename string) (data []byte, err error) {
 	if filename == "" {
 		return nil, errors.New("need filename")

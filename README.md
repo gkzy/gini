@@ -10,13 +10,6 @@ https://github.com/gkzy/gini
 
 ## 特点
 
-* 可通过包含另外一个配置文件
-
-```
-[file]
-include = app_ex.conf
-```
-
 * 支持reload
 
 ```go
