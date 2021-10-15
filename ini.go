@@ -13,6 +13,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -39,8 +40,8 @@ type Key struct {
 	V string `json:"v"`
 }
 
-// KeySlice KeySlice
-type KeySlice []Key
+// KeySlice define keySlice
+type KeySlice []*Key
 
 // Less sort less imp
 func (m KeySlice) Less(i, j int) bool {
@@ -121,7 +122,12 @@ func (ini *INI) LoadReader(r io.Reader, lineSep, kvSep string) error {
 	return ini.parseINI(data, lineSep, kvSep)
 }
 
-// Get get default section key
+// Set default section key value
+func (ini *INI) Set(key string, value interface{}) {
+	ini.SectionSet(DefaultSection, key, value)
+}
+
+// Get returns default section key
 //	return string
 func (ini *INI) Get(key string) (value string) {
 	return ini.SectionGet(DefaultSection, key)
@@ -164,7 +170,7 @@ func (ini *INI) SectionInt(section, key string) (int, error) {
 	return strconv.Atoi(v)
 }
 
-// SectionInt64 SectionInt64
+// SectionInt64 returns int64
 func (ini *INI) SectionInt64(section, key string) (int64, error) {
 	v := ini.SectionGet(section, key)
 	return strconv.ParseInt(v, 10, 64)
@@ -177,7 +183,7 @@ func (ini *INI) SectionFloat32(section, key string) (float32, error) {
 	return float32(f64), err
 }
 
-// SectionFloat64 SectionFloat64
+// SectionFloat64 returns float64
 func (ini *INI) SectionFloat64(section, key string) (float64, error) {
 	v := ini.SectionGet(section, key)
 	return strconv.ParseFloat(v, 64)
@@ -207,6 +213,16 @@ func (ini *INI) SectionGet(section, key string) (value string) {
 	return
 }
 
+// SectionSet set section -> key ->value
+func (ini *INI) SectionSet(section, key string, value interface{}) {
+	ks := ini.sections[section]
+	for _, item := range ks {
+		if item.K == key {
+			item.V = fmt.Sprintf("%v", value)
+		}
+	}
+}
+
 // GetKeys return all keys of the section
 func (ini *INI) GetKeys(section string) KeySlice {
 	kvSlice, ok := ini.sections[section]
@@ -232,8 +248,6 @@ func (ini *INI) GetSections() []string {
 
 // WriteOriginFile rewrite the origin file
 func (ini *INI) WriteOriginFile() error {
-	ini.rwLock.Lock()
-	defer ini.rwLock.Unlock()
 	file, err := os.Create(path.Join(ini.directory, ini.filename))
 	if err != nil {
 		return err
@@ -263,7 +277,7 @@ func (ini *INI) WriteFile(filename, content string) (n int, err error) {
 	return
 }
 
-// Write write to io.Writer
+// Write to io.Writer
 func (ini *INI) Write(w io.Writer) error {
 	ini.rwLock.Lock()
 	defer ini.rwLock.Unlock()
@@ -297,12 +311,12 @@ func (ini *INI) GetFileName() string {
 	return ini.filename
 }
 
-// SetDirectory SetDirectory
+// SetDirectory set config file directory
 func (ini *INI) SetDirectory(dir string) {
 	ini.directory = dir
 }
 
-// GetDirectory GetDirectory
+// GetDirectory return config file directory
 func (ini *INI) GetDirectory() string {
 	return ini.directory
 }
@@ -340,8 +354,8 @@ func (ini *INI) readFile(filename string) (data []byte, err error) {
 	return ioutil.ReadFile(path.Join(ini.directory, filename))
 }
 
-// write write kv
-func (ini *INI) write(kv []Key, buf *bufio.Writer) {
+// write  kv
+func (ini *INI) write(kv []*Key, buf *bufio.Writer) {
 	for _, item := range kv {
 		buf.WriteString(item.K)
 		buf.WriteString(" " + ini.kvSep + " ")
@@ -399,7 +413,7 @@ func (ini *INI) parseINI(data []byte, lineSep, kvSep string) error {
 
 		// 去重复:某个section下有重复的key时，只加载顺序的第一个
 		if !existKeyInSlice(keySlice, string(k)) {
-			keySlice = append(keySlice, Key{
+			keySlice = append(keySlice, &Key{
 				K: string(k),
 				V: string(v),
 			})

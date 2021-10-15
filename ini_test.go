@@ -1,8 +1,8 @@
 package gini
 
 import (
+	"fmt"
 	"log"
-	"os"
 	"testing"
 )
 
@@ -24,10 +24,29 @@ func Test1(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	//// 读取default key
-	//v := ini.Get("app_name")
-	//fmt.Println(v)
-	//
+	// 读取default key
+	v := ini.Get("app_name")
+	fmt.Println(v)
+
+	ini.Set("http_addr", 9090)
+
+	fmt.Println(ini.Get("app_name"))
+
+	ini.SectionSet("database", "host", "192.168.0.111")
+
+	err = ini.WriteOriginFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ini.ReLoad()
+
+	for _, kv := range ini.sections {
+		for _, item := range kv {
+			fmt.Println(item.K, item.V)
+		}
+	}
+
 	//vb := ini.GetBool("session_on")
 	//fmt.Printf("bool : %#v \n", vb)
 	//
@@ -60,14 +79,14 @@ func Test1(t *testing.T) {
 	//	log.Fatal(err)
 	//}
 
-	file, err := os.Create("./conf/new.conf")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-	err = ini.Write(file)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//file, err := os.Create("./conf/new.conf")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//defer file.Close()
+	//err = ini.Write(file)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 
 }
